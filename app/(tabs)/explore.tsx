@@ -4,16 +4,18 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { fetchIncidents } from '@/lib/incidents-api';
-import { DEFAULT_REGION, getCurrentPosition } from '@/lib/location';
+import { DEFAULT_REGION, getCurrentPosition, requestLocationPermission } from '@/lib/location';
 import { useHomeFilters } from '@/store/home-filters-store';
 import type { IncidentCategory } from '@/types';
 import { INCIDENT_CATEGORY_SHORT } from '@/types';
 
 export default function EntdeckenScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -23,7 +25,10 @@ export default function EntdeckenScreen() {
 
   const { data: location } = useQuery({
     queryKey: ['location'],
-    queryFn: getCurrentPosition,
+    queryFn: async () => {
+      await requestLocationPermission();
+      return getCurrentPosition();
+    },
     staleTime: 60_000,
   });
   const region = useMemo(() => {
@@ -48,7 +53,16 @@ export default function EntdeckenScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.toolbar, { backgroundColor: colors.background, borderColor: colors.border }]}>
+      <View
+        style={[
+          styles.toolbar,
+          {
+            backgroundColor: colors.background,
+            borderColor: colors.border,
+            paddingTop: insets.top + Spacing.sm,
+          },
+        ]}
+      >
         <Pressable
           onPress={() => setViewMode('map')}
           style={[styles.toolbarBtn, viewMode === 'map' && { backgroundColor: colors.tint }]}
@@ -110,7 +124,10 @@ export default function EntdeckenScreen() {
 
       {viewMode === 'map' && selectedId && (
         <Pressable
-          style={[styles.previewCard, { backgroundColor: colors.background }]}
+          style={[
+            styles.previewCard,
+            { backgroundColor: colors.background, bottom: insets.bottom + Spacing.xl },
+          ]}
           onPress={() => router.push(`/incident/${selectedId}`)}
         >
           <Text style={[styles.previewTitle, { color: colors.text }]}>Vorfall anzeigen</Text>
@@ -150,7 +167,6 @@ const styles = StyleSheet.create({
   listDesc: { fontSize: 13 },
   previewCard: {
     position: 'absolute',
-    bottom: Spacing.xl,
     left: Spacing.lg,
     right: Spacing.lg,
     padding: Spacing.lg,

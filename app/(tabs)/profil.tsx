@@ -1,12 +1,13 @@
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ADMIN_MODE } from '@/lib/env';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-
-const ADMIN_MODE = process.env.EXPO_PUBLIC_ADMIN_MODE === 'true';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProfilTabScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -18,7 +19,10 @@ export default function ProfilTabScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: insets.top, paddingBottom: insets.bottom + Spacing.lg },
+      ]}
     >
       <Text style={[styles.sectionTitle, { color: colors.text }]}>Einstellungen</Text>
 

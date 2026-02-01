@@ -5,11 +5,12 @@ import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { fetchIncidents } from '@/lib/incidents-api';
-import { DEFAULT_REGION, getCurrentPosition } from '@/lib/location';
+import { DEFAULT_REGION, getCurrentPosition, requestLocationPermission } from '@/lib/location';
 import { useHomeFilters } from '@/store/home-filters-store';
 import type { IncidentCategory } from '@/types';
 import { INCIDENT_CATEGORY_SHORT } from '@/types';
@@ -17,6 +18,7 @@ import { INCIDENT_CATEGORY_SHORT } from '@/types';
 const SNAP_POINTS = ['45%', '90%'];
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const router = useRouter();
   const mapRef = useRef<MapView>(null);
@@ -25,7 +27,10 @@ export default function HomeScreen() {
 
   const { data: location } = useQuery({
     queryKey: ['location'],
-    queryFn: getCurrentPosition,
+    queryFn: async () => {
+      await requestLocationPermission();
+      return getCurrentPosition();
+    },
     staleTime: 60_000,
   });
   const region = useMemo(() => {
@@ -81,7 +86,15 @@ export default function HomeScreen() {
         ))}
       </MapView>
 
-      <View style={[styles.topLabel, { backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.9)' }]}>
+      <View
+        style={[
+          styles.topLabel,
+          {
+            backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.9)',
+            top: insets.top + Spacing.sm,
+          },
+        ]}
+      >
         <Text style={[styles.topLabelText, { color: colors.text }]}>In deiner Nähe</Text>
       </View>
 
@@ -211,7 +224,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   topLabel: {
     position: 'absolute',
-    top: 56,
     alignSelf: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,

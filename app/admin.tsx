@@ -1,15 +1,15 @@
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ADMIN_CODE, ADMIN_MODE } from '@/lib/env';
 import { supabase } from '@/lib/supabase';
 import type { Incident } from '@/types';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-
-const ADMIN_CODE = process.env.EXPO_PUBLIC_ADMIN_CODE ?? 'naziwatch-admin';
-const ADMIN_MODE = process.env.EXPO_PUBLIC_ADMIN_MODE === 'true';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function AdminScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -65,7 +65,16 @@ export default function AdminScreen() {
 
   if (!unlocked) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+          },
+        ]}
+      >
         <Text style={[styles.title, { color: colors.text }]}>Moderation</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border }]}
@@ -83,7 +92,16 @@ export default function AdminScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        },
+      ]}
+    >
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>Pending ({pending.length})</Text>
         <Pressable onPress={loadPending} style={[styles.refresh, { borderColor: colors.border }]}>
