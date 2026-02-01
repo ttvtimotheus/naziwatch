@@ -2,9 +2,12 @@ import { Colors, Radius, Shadow, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ADMIN_MODE } from '@/lib/env';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 export default function ProfilTabScreen() {
   const insets = useSafeAreaInsets();
@@ -16,6 +19,14 @@ export default function ProfilTabScreen() {
     Linking.openSettings();
   };
 
+  const onSicherheitsmodus = () => {
+    Alert.alert(
+      'Sicherheitsmodus',
+      'Bald verfügbar: App-Name und Icon werden neutralisiert, um die Nutzung in sensiblen Situationen zu schützen.',
+      [{ text: 'OK' }]
+    );
+  };
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -24,7 +35,7 @@ export default function ProfilTabScreen() {
         { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.xxl },
       ]}
     >
-      <Text style={[styles.sectionTitle, { color: colors.icon }, { marginTop: 0 }]}>Einstellungen</Text>
+      <Text style={[styles.sectionTitle, { color: colors.icon }, styles.firstSectionTitle]}>Einstellungen</Text>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, Shadow.sm]}>
         <Pressable style={styles.row} onPress={openLocationSettings}>
           <View style={[styles.rowIconWrap, { backgroundColor: colors.background }]}>
@@ -34,49 +45,59 @@ export default function ProfilTabScreen() {
           <Ionicons name="chevron-forward" size={20} color={colors.icon} />
         </Pressable>
         <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
-        <View style={styles.row}>
+        <Pressable style={styles.row} onPress={onSicherheitsmodus}>
           <View style={[styles.rowIconWrap, { backgroundColor: colors.background }]}>
             <Ionicons name="shield-checkmark-outline" size={22} color={colors.icon} />
           </View>
           <Text style={[styles.rowText, { color: colors.text }]}>Sicherheitsmodus</Text>
           <Text style={[styles.placeholder, { color: colors.icon }]}>Bald</Text>
-        </View>
+        </Pressable>
       </View>
 
-      <Text style={[styles.sectionTitle, { color: colors.icon }]}>Rechtliches &amp; Hilfe</Text>
+      <Text style={[styles.sectionTitle, { color: colors.icon }]}>Rechtliches & Hilfe</Text>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, Shadow.sm]}>
-        <View style={styles.row}>
-          <Ionicons name="document-text-outline" size={22} color={colors.icon} />
+        <Pressable style={styles.row} onPress={() => router.push('/profil/datenschutz')}>
+          <View style={[styles.rowIconWrap, { backgroundColor: colors.background }]}>
+            <Ionicons name="document-text-outline" size={22} color={colors.tint} />
+          </View>
           <Text style={[styles.rowText, { color: colors.text }]}>Datenschutz</Text>
           <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-        </View>
+        </Pressable>
         <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
-        <View style={styles.row}>
-          <Ionicons name="list-outline" size={22} color={colors.icon} />
-          <Text style={[styles.rowText, { color: colors.text }]}>Regeln &amp; Nutzung</Text>
+        <Pressable style={styles.row} onPress={() => router.push('/profil/regeln')}>
+          <View style={[styles.rowIconWrap, { backgroundColor: colors.background }]}>
+            <Ionicons name="list-outline" size={22} color={colors.tint} />
+          </View>
+          <Text style={[styles.rowText, { color: colors.text }]}>Regeln & Nutzung</Text>
           <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-        </View>
+        </Pressable>
         <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
-        <View style={styles.row}>
-          <Ionicons name="help-circle-outline" size={22} color={colors.icon} />
+        <Pressable style={styles.row} onPress={() => router.push('/profil/faq')}>
+          <View style={[styles.rowIconWrap, { backgroundColor: colors.background }]}>
+            <Ionicons name="help-circle-outline" size={22} color={colors.tint} />
+          </View>
           <Text style={[styles.rowText, { color: colors.text }]}>FAQ</Text>
           <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-        </View>
+        </Pressable>
       </View>
 
       {ADMIN_MODE && (
         <>
           <Text style={[styles.sectionTitle, { color: colors.icon }]}>Admin</Text>
           <Pressable
-            style={[styles.card, styles.adminRow, { backgroundColor: colors.card, borderColor: colors.border }, Shadow.sm]}
+            style={[styles.card, styles.row, styles.adminRow, { backgroundColor: colors.card, borderColor: colors.border }, Shadow.sm]}
             onPress={() => router.push('/admin')}
           >
-            <Ionicons name="shield-outline" size={22} color={colors.icon} />
-            <Text style={[styles.rowText, { color: colors.icon }]}>Moderation</Text>
+            <View style={[styles.rowIconWrap, { backgroundColor: colors.background }]}>
+              <Ionicons name="shield-outline" size={22} color={colors.tint} />
+            </View>
+            <Text style={[styles.rowText, { color: colors.text }]}>Moderation</Text>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
           </Pressable>
         </>
       )}
+
+      <Text style={[styles.footerVersion, { color: colors.icon }]}>NaziWatch · Version {APP_VERSION}</Text>
     </ScrollView>
   );
 }
@@ -84,6 +105,7 @@ export default function ProfilTabScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: Spacing.lg },
+  firstSectionTitle: { marginTop: 0 },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
@@ -91,6 +113,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginBottom: Spacing.sm,
     marginTop: Spacing.xl,
+  },
+  footerVersion: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: Spacing.xxl,
+    marginBottom: Spacing.lg,
   },
   card: {
     borderRadius: Radius.lg,
