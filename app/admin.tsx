@@ -1,8 +1,11 @@
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ADMIN_CODE, ADMIN_MODE } from '@/lib/env';
+import { getSignedMediaUrl } from '@/lib/media-urls';
 import { supabase } from '@/lib/supabase';
-import type { Incident } from '@/types';
+import type { Incident, MediaRow } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -16,6 +19,8 @@ export default function AdminScreen() {
   const [code, setCode] = useState('');
   const [unlocked, setUnlocked] = useState(false);
   const [pending, setPending] = useState<Incident[]>([]);
+  const [mediaByIncidentId, setMediaByIncidentId] = useState<Record<string, MediaRow[]>>({});
+  const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -26,23 +31,45 @@ export default function AdminScreen() {
   }, [router]);
 
   const tryUnlock = () => {
-    if (code === ADMIN_CODE) setUnlocked(true);
-    else Alert.alert('Falscher Code');
+    const entered = code.trim();
+    if (entered === ADMIN_CODE) setUnlocked(true);
+    else Alert.alert('Falscher Code', 'Bitte den Admin-Code prüfen.');
   };
 
   const loadPending = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('incidents')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
+    const { data: incidents, error } = await supabase.rpc('get_pending_incidents');
     setLoading(false);
     if (error) {
       Alert.alert('Fehler', error.message);
       return;
     }
-    setPending((data ?? []) as Incident[]);
+    const list = (Array.isArray(incidents) ? incidents : []) as Incident[];
+    setPending(list);
+    if (list.length === 0) {
+      setMediaByIncidentId({});
+      return;
+    }
+    const ids = list.map((i) => i.id);
+    const { data: mediaRows, error: mediaErr } = await supabase.rpc('get_media_for_incidents', {
+      p_incident_ids: ids,
+    });
+    const mediaList = (Array.isArray(mediaRows) ? mediaRows : []) as MediaRow[];
+    const byId: Record<string, MediaRow[]> = {};
+    for (const m of mediaList) {
+      if (!byId[m.incident_id]) byId[m.incident_id] = [];
+      byId[m.incident_id].push(m);
+    }
+    setMediaByIncidentId(byId);
+    const paths = mediaList.filter((m) => m.type === 'image').map((m) => m.url);
+    const urlMap: Record<string, string> = {};
+    await Promise.all(
+      paths.map(async (path) => {
+        const url = await getSignedMediaUrl(path);
+        if (url) urlMap[path] = url;
+      })
+    );
+    setMediaUrls((prev) => ({ ...prev, ...urlMap }));
   };
 
   useEffect(() => {
@@ -50,13 +77,13 @@ export default function AdminScreen() {
   }, [unlocked]);
 
   const approve = async (id: string) => {
-    const { error } = await supabase.from('incidents').update({ status: 'approved' }).eq('id', id);
+    const { error } = await supabase.rpc('update_incident_status', { p_id: id, p_status: 'approved' });
     if (error) Alert.alert('Fehler', error.message);
     else loadPending();
   };
 
   const reject = async (id: string) => {
-    const { error } = await supabase.from('incidents').update({ status: 'rejected' }).eq('id', id);
+    const { error } = await supabase.rpc('update_incident_status', { p_id: id, p_status: 'rejected' });
     if (error) Alert.alert('Fehler', error.message);
     else loadPending();
   };
@@ -115,8 +142,19 @@ export default function AdminScreen() {
           data={pending}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
-          renderItem={({ item }) => (
+          renderItem={({ item }) => {
+            const media = mediaByIncidentId[item.id] ?? [];
+            const firstImage = media.find((m) => m.type === 'image');
+            const imageUrl = firstImage ? mediaUrls[firstImage.url] : null;
+            return (
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              {imageUrl ? (
+                <Image source={{ uri: imageUrl }} style={styles.cardThumb} contentFit="cover" />
+              ) : media.length > 0 ? (
+                <View style={[styles.cardThumbPlaceholder, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                  <Ionicons name="image-outline" size={28} color={colors.icon} />
+                </View>
+              ) : null}
               <Text style={[styles.cardCategory, { color: colors.tint }]}>{item.category}</Text>
               <Text style={[styles.cardDesc, { color: colors.text }]} numberOfLines={2}>
                 {item.description}
@@ -133,7 +171,7 @@ export default function AdminScreen() {
                 </Pressable>
               </View>
             </View>
-          )}
+          );}}
         />
       )}
     </View>
@@ -162,6 +200,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: Spacing.md,
+    overflow: 'hidden',
+  },
+  cardThumb: { width: '100%', height: 120, borderRadius: 8, marginBottom: Spacing.sm },
+  cardThumbPlaceholder: {
+    width: '100%',
+    height: 80,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardCategory: { fontSize: 12, fontWeight: '600', marginBottom: 4 },
   cardDesc: { fontSize: 14, marginBottom: 4 },

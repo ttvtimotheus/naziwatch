@@ -1,11 +1,14 @@
 import { Colors, Radius, Shadow, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { fetchIncidentById } from '@/lib/incidents-api';
+import { getSignedMediaUrl } from '@/lib/media-urls';
 import type { IncidentCategory } from '@/types';
 import { INCIDENT_CATEGORY_LABELS } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -20,6 +23,22 @@ export default function IncidentDetailScreen() {
     queryFn: () => fetchIncidentById(id ?? ''),
     enabled: !!id,
   });
+
+  const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!incident?.media?.length) return;
+    let cancelled = false;
+    (async () => {
+      const next: Record<string, string> = {};
+      for (const m of incident.media ?? []) {
+        if (m.type !== 'image' || cancelled) continue;
+        const url = await getSignedMediaUrl(m.url);
+        if (url && !cancelled) next[m.url] = url;
+      }
+      if (!cancelled) setMediaUrls((prev) => ({ ...prev, ...next }));
+    })();
+    return () => { cancelled = true; };
+  }, [incident?.media]);
 
   if (isLoading || !incident) {
     return (
@@ -69,6 +88,30 @@ export default function IncidentDetailScreen() {
       <View style={[styles.descCard, { backgroundColor: colors.card, borderColor: colors.border }, Shadow.sm]}>
         <Text style={[styles.description, { color: colors.text }]}>{incident.description}</Text>
       </View>
+      {incident.media && incident.media.length > 0 && (
+        <>
+          <Text style={[styles.descLabel, { color: colors.icon }]}>Medien</Text>
+          <View style={styles.mediaWrap}>
+            {incident.media
+              .filter((m) => m.type === 'image')
+              .map((m) => {
+                const url = mediaUrls[m.url];
+                return url ? (
+                  <Image
+                    key={m.id}
+                    source={{ uri: url }}
+                    style={styles.mediaImage}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View key={m.id} style={[styles.mediaPlaceholder, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    <Ionicons name="image-outline" size={32} color={colors.icon} />
+                  </View>
+                );
+              })}
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -105,4 +148,14 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   description: { fontSize: 16, lineHeight: 24, fontWeight: '400' },
+  mediaWrap: { gap: Spacing.md, marginBottom: Spacing.xl },
+  mediaImage: { width: '100%', height: 220, borderRadius: Radius.lg },
+  mediaPlaceholder: {
+    width: '100%',
+    height: 120,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

@@ -25,6 +25,7 @@ export interface Incident {
   status: IncidentStatus;
   risk_flags: Record<string, unknown> | null;
   source_meta: Record<string, unknown> | null;
+  media?: MediaRow[];
 }
 
 export interface MediaRow {

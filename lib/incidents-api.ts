@@ -58,7 +58,7 @@ export async function fetchIncidents(params: FetchIncidentsParams = {}): Promise
 export async function fetchIncidentById(id: string): Promise<Incident | null> {
   const { data, error } = await supabase
     .from('incidents')
-    .select('*')
+    .select('*, media(*)')
     .eq('id', id)
     .eq('status', 'approved')
     .single();

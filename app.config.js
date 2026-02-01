@@ -1,5 +1,6 @@
-// Load .env so EXPO_PUBLIC_* are available when config is evaluated (expo start / prebuild).
-require('dotenv').config();
+// Load .env from project root so EXPO_PUBLIC_* are available when config is evaluated.
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 module.exports = {
   expo: {
@@ -63,6 +64,7 @@ module.exports = {
       EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL ?? '',
       EXPO_PUBLIC_SUPABASE_ANON_KEY:
         process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_KEY ?? '',
+      EXPO_PUBLIC_SUPABASE_KEY: process.env.EXPO_PUBLIC_SUPABASE_KEY ?? '',
       EXPO_PUBLIC_ADMIN_MODE: process.env.EXPO_PUBLIC_ADMIN_MODE ?? '',
       EXPO_PUBLIC_ADMIN_CODE: process.env.EXPO_PUBLIC_ADMIN_CODE ?? '',
     },

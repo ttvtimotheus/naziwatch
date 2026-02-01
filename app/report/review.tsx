@@ -5,6 +5,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { canSubmit, recordSubmission } from '@/lib/cooldown';
 import { roundCoordsForPrivacy } from '@/lib/rounding';
 import { supabase } from '@/lib/supabase';
+import { uploadIncidentMedia } from '@/lib/upload-media';
 import { useReportStore } from '@/store/report-store';
 import type { IncidentCategory } from '@/types';
 import { INCIDENT_CATEGORY_LABELS } from '@/types';
@@ -50,28 +51,39 @@ export default function ReportReviewScreen() {
     setSubmitting(true);
     try {
       const { lat, lon } = rounded!;
-      const { data: incident, error: incError } = await supabase
-        .from('incidents')
-        .insert({
-          category: draft.category,
-          description: draft.description.trim(),
-          occurred_at: draft.occurred_at,
-          lat,
-          lon,
-          precision_m: draft.precision_m,
-          region_text: null,
-          status: 'pending',
-        })
-        .select('id')
-        .single();
+      const { data: incidentId, error: incError } = await supabase.rpc('insert_incident', {
+        p_category: draft.category,
+        p_description: draft.description.trim(),
+        p_occurred_at: draft.occurred_at,
+        p_lat: lat,
+        p_lon: lon,
+        p_precision_m: draft.precision_m,
+        p_region_text: null,
+        p_status: 'pending',
+      });
 
       if (incError) {
         Alert.alert('Fehler', incError.message);
         return;
       }
+      const incidentIdStr = incidentId ?? '';
+      if (incidentIdStr && draft.mediaUris.length > 0) {
+        for (let i = 0; i < draft.mediaUris.length; i++) {
+          try {
+            await uploadIncidentMedia(
+              incidentIdStr,
+              draft.mediaUris[i].uri,
+              draft.mediaUris[i].type
+            );
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : 'Upload fehlgeschlagen';
+            Alert.alert('Medien-Upload', `Foto ${i + 1}: ${msg}`);
+          }
+        }
+      }
       await recordSubmission();
       useReportStore.getState().reset();
-      router.replace({ pathname: '/report/success', params: { id: incident?.id ?? '' } });
+      router.replace({ pathname: '/report/success', params: { id: incidentIdStr } });
     } finally {
       setSubmitting(false);
     }
