@@ -1,112 +1,166 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { fetchIncidents } from '@/lib/incidents-api';
+import { DEFAULT_REGION, getCurrentPosition } from '@/lib/location';
+import { useHomeFilters } from '@/store/home-filters-store';
+import type { IncidentCategory } from '@/types';
+import { INCIDENT_CATEGORY_SHORT } from '@/types';
 
-export default function TabTwoScreen() {
+export default function EntdeckenScreen() {
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+  const { timeRange, category } = useHomeFilters();
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const { data: location } = useQuery({
+    queryKey: ['location'],
+    queryFn: getCurrentPosition,
+    staleTime: 60_000,
+  });
+  const region = useMemo(() => {
+    const coords = location ?? DEFAULT_REGION;
+    return {
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      latitudeDelta: 0.08,
+      longitudeDelta: 0.08,
+    };
+  }, [location]);
+
+  const { data: result } = useQuery({
+    queryKey: ['incidents', 'explore', timeRange, category],
+    queryFn: () =>
+      fetchIncidents({
+        filters: { timeRange: timeRange ?? undefined, category: category ?? undefined, onlyApproved: true },
+        pageSize: 50,
+      }),
+  });
+  const incidents = result?.data ?? [];
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      <View style={[styles.toolbar, { backgroundColor: colors.background, borderColor: colors.border }]}>
+        <Pressable
+          onPress={() => setViewMode('map')}
+          style={[styles.toolbarBtn, viewMode === 'map' && { backgroundColor: colors.tint }]}
+        >
+          <Ionicons name="map" size={20} color={viewMode === 'map' ? '#fff' : colors.text} />
+          <Text style={[styles.toolbarBtnText, { color: viewMode === 'map' ? '#fff' : colors.text }]}>Karte</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setViewMode('list')}
+          style={[styles.toolbarBtn, viewMode === 'list' && { backgroundColor: colors.tint }]}
+        >
+          <Ionicons name="list" size={20} color={viewMode === 'list' ? '#fff' : colors.text} />
+          <Text style={[styles.toolbarBtnText, { color: viewMode === 'list' ? '#fff' : colors.text }]}>Liste</Text>
+        </Pressable>
+      </View>
+
+      {viewMode === 'map' ? (
+        <MapView
+          style={styles.map}
+          initialRegion={region}
+          showsUserLocation
+          provider={Platform.OS === 'ios' ? undefined : undefined}
+        >
+          {incidents.map((inc) => (
+            <Marker
+              key={inc.id}
+              coordinate={{ latitude: inc.lat, longitude: inc.lon }}
+              title={INCIDENT_CATEGORY_SHORT[inc.category as IncidentCategory]}
+              onCalloutPress={() => router.push(`/incident/${inc.id}`)}
+              onPress={() => setSelectedId(inc.id)}
+            />
+          ))}
+        </MapView>
+      ) : (
+        <View style={[styles.listContainer, { backgroundColor: colors.background }]}>
+          {incidents.length === 0 ? (
+            <Text style={[styles.empty, { color: colors.icon }]}>Keine Vorfälle in den gewählten Filtern.</Text>
+          ) : (
+            incidents.map((inc) => (
+              <Pressable
+                key={inc.id}
+                style={[styles.listRow, { borderBottomColor: colors.border }]}
+                onPress={() => router.push(`/incident/${inc.id}`)}
+              >
+                <Text style={[styles.listCategory, { color: colors.tint }]}>
+                  {INCIDENT_CATEGORY_SHORT[inc.category as IncidentCategory]}
+                </Text>
+                <Text style={[styles.listSnippet, { color: colors.text }]} numberOfLines={2}>
+                  {inc.region_text ?? 'Region'} · {new Date(inc.occurred_at).toLocaleDateString('de-DE')}
+                </Text>
+                <Text style={[styles.listDesc, { color: colors.icon }]} numberOfLines={1}>
+                  {inc.description}
+                </Text>
+              </Pressable>
+            ))
+          )}
+        </View>
+      )}
+
+      {viewMode === 'map' && selectedId && (
+        <Pressable
+          style={[styles.previewCard, { backgroundColor: colors.background }]}
+          onPress={() => router.push(`/incident/${selectedId}`)}
+        >
+          <Text style={[styles.previewTitle, { color: colors.text }]}>Vorfall anzeigen</Text>
+          <Text style={[styles.previewSub, { color: colors.icon }]}>Tippen für Details</Text>
+        </Pressable>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
+  container: { flex: 1 },
+  toolbar: {
     flexDirection: 'row',
-    gap: 8,
+    padding: Spacing.sm,
+    borderBottomWidth: 1,
+    gap: Spacing.sm,
   },
+  toolbarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: 8,
+  },
+  toolbarBtnText: { fontSize: 14 },
+  map: { flex: 1 },
+  listContainer: { flex: 1, padding: Spacing.lg },
+  empty: { fontSize: 16, textAlign: 'center', marginTop: Spacing.xl },
+  listRow: {
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  listCategory: { fontSize: 12, fontWeight: '600', marginBottom: 2 },
+  listSnippet: { fontSize: 14, marginBottom: 2 },
+  listDesc: { fontSize: 13 },
+  previewCard: {
+    position: 'absolute',
+    bottom: Spacing.xl,
+    left: Spacing.lg,
+    right: Spacing.lg,
+    padding: Spacing.lg,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  previewTitle: { fontSize: 16, fontWeight: '600' },
+  previewSub: { fontSize: 14, marginTop: 2 },
 });

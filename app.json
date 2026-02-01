@@ -12,7 +12,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.timosaiya.naziwatch",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "NaziWatch zeigt Vorfälle in deiner Nähe und ermöglicht anonymes Melden. Dein Standort wird nur grob und nicht dauerhaft gespeichert.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "NaziWatch nutzt deinen Standort nur grob, um Vorfälle in deiner Nähe anzuzeigen. Kein dauerhaftes Tracking."
       }
     },
     "android": {
