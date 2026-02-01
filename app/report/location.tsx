@@ -1,15 +1,19 @@
-import { Colors, Spacing } from '@/constants/theme';
+import { ReportStepIndicator } from '@/components/report-step-indicator';
+import { Colors, Radius, Shadow, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { DEFAULT_REGION, getCurrentPosition } from '@/lib/location';
+import { DEFAULT_REGION, getCurrentPosition, requestLocationPermission } from '@/lib/location';
 import { PRECISION_OPTIONS } from '@/lib/rounding';
 import { useReportStore } from '@/store/report-store';
+import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { MapPressEvent, Marker } from 'react-native-maps';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ReportLocationScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -22,7 +26,10 @@ export default function ReportLocationScreen() {
 
   const { data: userLocation } = useQuery({
     queryKey: ['location'],
-    queryFn: getCurrentPosition,
+    queryFn: async () => {
+      await requestLocationPermission();
+      return getCurrentPosition();
+    },
     staleTime: 60_000,
   });
 
@@ -85,37 +92,57 @@ export default function ReportLocationScreen() {
           <Marker coordinate={{ latitude: pin.lat, longitude: pin.lon }} />
         )}
       </MapView>
-      <View style={[styles.overlay, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.overlay,
+          { backgroundColor: colors.background, paddingBottom: insets.bottom + Spacing.lg },
+          Shadow.lg,
+        ]}
+      >
+        <ReportStepIndicator current={2} />
+        <Text style={[styles.title, { color: colors.text }]}>Wo war es?</Text>
         <Text style={[styles.hint, { color: colors.icon }]}>
-          Tippe auf die Karte für den ungefähren Ort. Genauigkeit wählen:
+          Tippe auf die Karte für den ungefähren Ort. Wir speichern nur grobe Koordinaten (Datenschutz).
         </Text>
-        <View style={styles.precisionRow}>
-          {PRECISION_OPTIONS.map(({ value, label }) => (
-            <Pressable
-              key={value}
-              onPress={() => setPrecision(value)}
-              style={[
-                styles.precisionBtn,
-                { borderColor: colors.border },
-                precision === value && { backgroundColor: colors.tint },
-              ]}
-            >
-              <Text
+        <View style={[styles.precisionCard, { backgroundColor: colors.card }, Shadow.sm]}>
+          <Text style={[styles.precisionLabel, { color: colors.icon }]}>Ungenauigkeit (Privacy)</Text>
+          <View style={styles.precisionRow}>
+            {PRECISION_OPTIONS.map(({ value, label }) => (
+              <Pressable
+                key={value}
+                onPress={() => setPrecision(value)}
                 style={[
-                  styles.precisionBtnText,
-                  { color: precision === value ? '#fff' : colors.text },
+                  styles.precisionBtn,
+                  { borderColor: colors.border },
+                  precision === value && { backgroundColor: colors.tint },
                 ]}
               >
-                {label}
-              </Text>
-            </Pressable>
-          ))}
+                <Text
+                  style={[
+                    styles.precisionBtnText,
+                    { color: precision === value ? '#fff' : colors.text },
+                  ]}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
-        <Pressable style={[styles.secondaryBtn, { borderColor: colors.border }]} onPress={centerOnUser}>
+        <Pressable
+          style={[styles.secondaryBtn, { backgroundColor: colors.card, borderColor: colors.border }, Shadow.sm]}
+          onPress={centerOnUser}
+        >
+          <Ionicons name="locate" size={20} color={colors.tint} />
           <Text style={[styles.secondaryBtnText, { color: colors.text }]}>Mein Standort</Text>
         </Pressable>
-        <Pressable style={[styles.primaryBtn, { backgroundColor: colors.tint }]} onPress={onNext}>
+        <Pressable
+          style={[styles.primaryBtn, { backgroundColor: colors.tint }, Shadow.md]}
+          onPress={onNext}
+          disabled={!pin}
+        >
           <Text style={styles.primaryBtnText}>Weiter</Text>
+          <Ionicons name="arrow-forward" size={20} color="#fff" />
         </Pressable>
       </View>
     </View>
@@ -127,26 +154,43 @@ const styles = StyleSheet.create({
   map: { flex: 1, width: '100%' },
   overlay: {
     padding: Spacing.lg,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
   },
-  hint: { fontSize: 14, marginBottom: Spacing.md },
-  precisionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md },
+  title: { fontSize: 20, fontWeight: '700', marginBottom: Spacing.sm },
+  hint: { fontSize: 14, marginBottom: Spacing.lg, lineHeight: 20 },
+  precisionCard: {
+    padding: Spacing.lg,
+    borderRadius: Radius.md,
+    marginBottom: Spacing.md,
+  },
+  precisionLabel: { fontSize: 12, fontWeight: '600', marginBottom: Spacing.sm, textTransform: 'uppercase', letterSpacing: 0.5 },
+  precisionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   precisionBtn: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: 8,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: Radius.full,
     borderWidth: 1,
   },
-  precisionBtnText: { fontSize: 14 },
+  precisionBtnText: { fontSize: 14, fontWeight: '600' },
   secondaryBtn: {
-    paddingVertical: Spacing.md,
-    borderRadius: 12,
-    borderWidth: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    marginBottom: Spacing.md,
   },
-  secondaryBtnText: { fontSize: 16 },
-  primaryBtn: { paddingVertical: Spacing.lg, borderRadius: 12, alignItems: 'center' },
-  primaryBtnText: { color: '#fff', fontSize: 18, fontWeight: '600' },
+  secondaryBtnText: { fontSize: 16, fontWeight: '600' },
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.lg,
+    borderRadius: Radius.lg,
+  },
+  primaryBtnText: { color: '#fff', fontSize: 18, fontWeight: '700' },
 });
