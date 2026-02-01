@@ -41,7 +41,11 @@ export default function EntdeckenScreen() {
     };
   }, [location]);
 
-  const { data: result } = useQuery({
+  const {
+    data: result,
+    isError: incidentsError,
+    refetch: refetchIncidents,
+  } = useQuery({
     queryKey: ['incidents', 'explore', timeRange, category],
     queryFn: () =>
       fetchIncidents({
@@ -98,7 +102,17 @@ export default function EntdeckenScreen() {
         </MapView>
       ) : (
         <View style={[styles.listContainer, { backgroundColor: colors.background }]}>
-          {incidents.length === 0 ? (
+          {incidentsError ? (
+            <View style={styles.errorBlock}>
+              <Text style={[styles.empty, { color: colors.icon }]}>Fehler beim Laden.</Text>
+              <Pressable
+                style={[styles.retryBtn, { backgroundColor: colors.tint }]}
+                onPress={() => refetchIncidents()}
+              >
+                <Text style={styles.retryBtnText}>Erneut laden</Text>
+              </Pressable>
+            </View>
+          ) : incidents.length === 0 ? (
             <Text style={[styles.empty, { color: colors.icon }]}>Keine Vorfälle in den gewählten Filtern.</Text>
           ) : (
             incidents.map((inc) => (
@@ -158,6 +172,9 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   listContainer: { flex: 1, padding: Spacing.lg },
   empty: { fontSize: 16, textAlign: 'center', marginTop: Spacing.xl },
+  errorBlock: { marginTop: Spacing.xl, alignItems: 'center', gap: Spacing.md },
+  retryBtn: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: 8 },
+  retryBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   listRow: {
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,

@@ -2,21 +2,32 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ReportSuccessScreen() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const router = useRouter();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        },
+      ]}
+    >
       <Text style={[styles.title, { color: colors.text }]}>Meldung eingegangen</Text>
       {id ? (
         <Text style={[styles.id, { color: colors.icon }]}>Referenz: {id.slice(0, 8)}…</Text>
       ) : null}
       <Text style={[styles.note, { color: colors.text }]}>
-        Deine Meldung wird redaktionell geprüft. Keine Rückverfolgung, da anonym.
+        Deine Meldung wird redaktionell geprüft. Sie erscheint erst nach Freigabe. Keine Rückverfolgung möglich – vollständig anonym.
       </Text>
       <Pressable
         style={[styles.btn, { backgroundColor: colors.tint }]}

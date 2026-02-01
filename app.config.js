@@ -61,7 +61,8 @@ module.exports = {
         projectId: '7848f5fd-c582-4dbb-9ca3-d6e803fc8a14',
       },
       EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL ?? '',
-      EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
+      EXPO_PUBLIC_SUPABASE_ANON_KEY:
+        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_KEY ?? '',
       EXPO_PUBLIC_ADMIN_MODE: process.env.EXPO_PUBLIC_ADMIN_MODE ?? '',
       EXPO_PUBLIC_ADMIN_CODE: process.env.EXPO_PUBLIC_ADMIN_CODE ?? '',
     },

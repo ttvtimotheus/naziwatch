@@ -3,7 +3,7 @@ import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -25,7 +25,11 @@ export default function HomeScreen() {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const { timeRange, category, setTimeRange, setCategory } = useHomeFilters();
 
-  const { data: location } = useQuery({
+  const {
+    data: location,
+    isSuccess: locationQuerySettled,
+    refetch: refetchLocation,
+  } = useQuery({
     queryKey: ['location'],
     queryFn: async () => {
       await requestLocationPermission();
@@ -43,7 +47,13 @@ export default function HomeScreen() {
     };
   }, [location]);
 
-  const { data: incidentsResult, isLoading } = useQuery({
+  const {
+    data: incidentsResult,
+    isLoading,
+    isError: incidentsError,
+    isRefetching,
+    refetch: refetchIncidents,
+  } = useQuery({
     queryKey: ['incidents', 'home', timeRange, category],
     queryFn: () =>
       fetchIncidents({
@@ -60,8 +70,10 @@ export default function HomeScreen() {
         latitude: location.latitude,
         longitude: location.longitude,
       });
+    } else {
+      refetchLocation();
     }
-  }, [location, region]);
+  }, [location, region, refetchLocation]);
 
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
@@ -86,7 +98,7 @@ export default function HomeScreen() {
         ))}
       </MapView>
 
-      <View
+      <Pressable
         style={[
           styles.topLabel,
           {
@@ -94,9 +106,12 @@ export default function HomeScreen() {
             top: insets.top + Spacing.sm,
           },
         ]}
+        onPress={location ? undefined : () => refetchLocation()}
       >
-        <Text style={[styles.topLabelText, { color: colors.text }]}>In deiner Nähe</Text>
-      </View>
+        <Text style={[styles.topLabelText, { color: colors.text }]}>
+          {location ? 'In deiner Nähe' : locationQuerySettled ? 'Standort erlauben (tippen)' : 'Standort…'}
+        </Text>
+      </Pressable>
 
       <Pressable style={styles.centerButton} onPress={centerOnUser}>
         <Ionicons name="locate" size={24} color={colors.tint} />
@@ -109,7 +124,16 @@ export default function HomeScreen() {
         handleIndicatorStyle={{ backgroundColor: colors.icon }}
         backgroundStyle={{ backgroundColor: colors.background }}
       >
-        <BottomSheetScrollView contentContainerStyle={styles.sheetContent}>
+        <BottomSheetScrollView
+          contentContainerStyle={styles.sheetContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={() => refetchIncidents()}
+              tintColor={colors.tint}
+            />
+          }
+        >
           {/* Search row */}
           <View style={[styles.searchRow, { borderColor: colors.border }]}>
             <View style={[styles.searchIconWrap, { backgroundColor: colors.tint }]}>
@@ -182,7 +206,17 @@ export default function HomeScreen() {
 
           {/* Incident list preview */}
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Neueste Vorfälle</Text>
-          {isLoading ? (
+          {incidentsError ? (
+            <View style={styles.errorRow}>
+              <Text style={[styles.placeholder, { color: colors.icon }]}>Fehler beim Laden.</Text>
+              <Pressable
+                style={[styles.retryBtn, { backgroundColor: colors.tint }]}
+                onPress={() => refetchIncidents()}
+              >
+                <Text style={styles.retryBtnText}>Erneut laden</Text>
+              </Pressable>
+            </View>
+          ) : isLoading ? (
             <Text style={[styles.placeholder, { color: colors.icon }]}>Lade…</Text>
           ) : incidents.length === 0 ? (
             <Text style={[styles.placeholder, { color: colors.icon }]}>Keine Vorfälle in den gewählten Filtern.</Text>
@@ -301,6 +335,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   placeholder: { marginHorizontal: Spacing.lg, marginBottom: Spacing.md },
+  errorRow: { marginHorizontal: Spacing.lg, marginBottom: Spacing.md, gap: Spacing.sm },
+  retryBtn: { alignSelf: 'flex-start', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: 8 },
+  retryBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   incidentRow: {
     marginHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
