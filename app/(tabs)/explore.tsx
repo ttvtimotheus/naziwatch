@@ -6,7 +6,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Radius, Shadow, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { fetchIncidents } from '@/lib/incidents-api';
 import { DEFAULT_REGION, getCurrentPosition, requestLocationPermission } from '@/lib/location';
@@ -62,25 +62,29 @@ export default function EntdeckenScreen() {
           styles.toolbar,
           {
             backgroundColor: colors.background,
-            borderColor: colors.border,
             paddingTop: insets.top + Spacing.sm,
+            paddingBottom: Spacing.sm,
+            paddingHorizontal: Spacing.sm,
+            ...Shadow.sm,
           },
         ]}
       >
-        <Pressable
-          onPress={() => setViewMode('map')}
-          style={[styles.toolbarBtn, viewMode === 'map' && { backgroundColor: colors.tint }]}
-        >
-          <Ionicons name="map" size={20} color={viewMode === 'map' ? '#fff' : colors.text} />
-          <Text style={[styles.toolbarBtnText, { color: viewMode === 'map' ? '#fff' : colors.text }]}>Karte</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setViewMode('list')}
-          style={[styles.toolbarBtn, viewMode === 'list' && { backgroundColor: colors.tint }]}
-        >
-          <Ionicons name="list" size={20} color={viewMode === 'list' ? '#fff' : colors.text} />
-          <Text style={[styles.toolbarBtnText, { color: viewMode === 'list' ? '#fff' : colors.text }]}>Liste</Text>
-        </Pressable>
+        <View style={[styles.segmentedControl, { backgroundColor: colors.card }]}>
+          <Pressable
+            onPress={() => setViewMode('map')}
+            style={[styles.segmentedBtn, viewMode === 'map' && { backgroundColor: colors.tint }, Shadow.sm]}
+          >
+            <Ionicons name="map" size={20} color={viewMode === 'map' ? '#fff' : colors.text} />
+            <Text style={[styles.segmentedBtnText, { color: viewMode === 'map' ? '#fff' : colors.text }]}>Karte</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setViewMode('list')}
+            style={[styles.segmentedBtn, viewMode === 'list' && { backgroundColor: colors.tint }, Shadow.sm]}
+          >
+            <Ionicons name="list" size={20} color={viewMode === 'list' ? '#fff' : colors.text} />
+            <Text style={[styles.segmentedBtnText, { color: viewMode === 'list' ? '#fff' : colors.text }]}>Liste</Text>
+          </Pressable>
+        </View>
       </View>
 
       {viewMode === 'map' ? (
@@ -113,23 +117,29 @@ export default function EntdeckenScreen() {
               </Pressable>
             </View>
           ) : incidents.length === 0 ? (
-            <Text style={[styles.empty, { color: colors.icon }]}>Keine Vorfälle in den gewählten Filtern.</Text>
+            <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
+              <Ionicons name="document-text-outline" size={40} color={colors.icon} />
+              <Text style={[styles.empty, { color: colors.icon }]}>Keine Vorfälle in den gewählten Filtern.</Text>
+            </View>
           ) : (
             incidents.map((inc) => (
               <Pressable
                 key={inc.id}
-                style={[styles.listRow, { borderBottomColor: colors.border }]}
+                style={[styles.listCard, { backgroundColor: colors.card, borderColor: colors.border }, Shadow.sm]}
                 onPress={() => router.push(`/incident/${inc.id}`)}
               >
-                <Text style={[styles.listCategory, { color: colors.tint }]}>
-                  {INCIDENT_CATEGORY_SHORT[inc.category as IncidentCategory]}
-                </Text>
-                <Text style={[styles.listSnippet, { color: colors.text }]} numberOfLines={2}>
+                <View style={[styles.listCardBadge, { backgroundColor: colors.tint }]}>
+                  <Text style={styles.listCardBadgeText}>
+                    {INCIDENT_CATEGORY_SHORT[inc.category as IncidentCategory]}
+                  </Text>
+                </View>
+                <Text style={[styles.listSnippet, { color: colors.text }]} numberOfLines={1}>
                   {inc.region_text ?? 'Region'} · {new Date(inc.occurred_at).toLocaleDateString('de-DE')}
                 </Text>
-                <Text style={[styles.listDesc, { color: colors.icon }]} numberOfLines={1}>
+                <Text style={[styles.listDesc, { color: colors.icon }]} numberOfLines={2}>
                   {inc.description}
                 </Text>
+                <Ionicons name="chevron-forward" size={20} color={colors.icon} style={styles.listCardChevron} />
               </Pressable>
             ))
           )}
@@ -141,11 +151,13 @@ export default function EntdeckenScreen() {
           style={[
             styles.previewCard,
             { backgroundColor: colors.background, bottom: insets.bottom + Spacing.xl },
+            Shadow.lg,
           ]}
           onPress={() => router.push(`/incident/${selectedId}`)}
         >
           <Text style={[styles.previewTitle, { color: colors.text }]}>Vorfall anzeigen</Text>
           <Text style={[styles.previewSub, { color: colors.icon }]}>Tippen für Details</Text>
+          <Ionicons name="chevron-forward" size={20} color={colors.icon} />
         </Pressable>
       )}
     </View>
@@ -154,46 +166,63 @@ export default function EntdeckenScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  toolbar: {
+  toolbar: { paddingHorizontal: Spacing.lg },
+  segmentedControl: {
     flexDirection: 'row',
-    padding: Spacing.sm,
-    borderBottomWidth: 1,
-    gap: Spacing.sm,
+    borderRadius: Radius.lg,
+    padding: 4,
+    gap: 4,
   },
-  toolbarBtn: {
+  segmentedBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: 8,
-  },
-  toolbarBtnText: { fontSize: 14 },
-  map: { flex: 1 },
-  listContainer: { flex: 1, padding: Spacing.lg },
-  empty: { fontSize: 16, textAlign: 'center', marginTop: Spacing.xl },
-  errorBlock: { marginTop: Spacing.xl, alignItems: 'center', gap: Spacing.md },
-  retryBtn: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: 8 },
-  retryBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  listRow: {
+    justifyContent: 'center',
+    gap: 8,
     paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
+    borderRadius: Radius.md,
   },
-  listCategory: { fontSize: 12, fontWeight: '600', marginBottom: 2 },
-  listSnippet: { fontSize: 14, marginBottom: 2 },
-  listDesc: { fontSize: 13 },
+  segmentedBtnText: { fontSize: 15, fontWeight: '600' },
+  map: { flex: 1 },
+  listContainer: { flex: 1, padding: Spacing.lg, gap: Spacing.md },
+  empty: { fontSize: 16, textAlign: 'center', marginTop: Spacing.sm },
+  emptyCard: {
+    marginTop: Spacing.xl,
+    padding: Spacing.xxl,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  errorBlock: { marginTop: Spacing.xl, alignItems: 'center', gap: Spacing.md },
+  retryBtn: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm + 2, borderRadius: Radius.sm },
+  retryBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  listCard: {
+    padding: Spacing.lg,
+    paddingRight: Spacing.xl + 24,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+  },
+  listCardBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Radius.sm,
+    marginBottom: Spacing.sm,
+  },
+  listCardBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
+  listSnippet: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
+  listDesc: { fontSize: 13, lineHeight: 18 },
+  listCardChevron: { position: 'absolute', right: Spacing.md, top: Spacing.lg },
   previewCard: {
     position: 'absolute',
     left: Spacing.lg,
     right: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: Spacing.lg,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    borderRadius: Radius.lg,
+    gap: Spacing.md,
   },
-  previewTitle: { fontSize: 16, fontWeight: '600' },
-  previewSub: { fontSize: 14, marginTop: 2 },
+  previewTitle: { flex: 1, fontSize: 17, fontWeight: '700' },
+  previewSub: { flex: 1, fontSize: 14 },
 });

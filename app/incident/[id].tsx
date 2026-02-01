@@ -1,13 +1,16 @@
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Radius, Shadow, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { fetchIncidentById } from '@/lib/incidents-api';
 import type { IncidentCategory } from '@/types';
 import { INCIDENT_CATEGORY_LABELS } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function IncidentDetailScreen() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -40,22 +43,32 @@ export default function IncidentDetailScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.xxl }]}
     >
-      <View style={[styles.badge, { backgroundColor: colors.tint }]}>
+      <View style={[styles.badge, { backgroundColor: colors.tint }, Shadow.sm]}>
         <Text style={styles.badgeText}>
           {INCIDENT_CATEGORY_LABELS[incident.category as IncidentCategory]}
         </Text>
       </View>
-      <Text style={[styles.region, { color: colors.icon }]}>
-        {incident.region_text ?? 'Grobe Region'}
-      </Text>
-      <Text style={[styles.date, { color: colors.icon }]}>
-        {new Date(incident.occurred_at).toLocaleString('de-DE')}
-      </Text>
-      <Text style={[styles.description, { color: colors.text }]}>
-        {incident.description}
-      </Text>
+      <View style={[styles.metaCard, { backgroundColor: colors.card, borderColor: colors.border }, Shadow.sm]}>
+        <View style={styles.metaRow}>
+          <Ionicons name="location-outline" size={20} color={colors.icon} />
+          <Text style={[styles.metaLabel, { color: colors.icon }]}>Region</Text>
+          <Text style={[styles.metaValue, { color: colors.text }]}>{incident.region_text ?? 'Grobe Region'}</Text>
+        </View>
+        <View style={[styles.metaDivider, { backgroundColor: colors.border }]} />
+        <View style={styles.metaRow}>
+          <Ionicons name="calendar-outline" size={20} color={colors.icon} />
+          <Text style={[styles.metaLabel, { color: colors.icon }]}>Zeitpunkt</Text>
+          <Text style={[styles.metaValue, { color: colors.text }]}>
+            {new Date(incident.occurred_at).toLocaleString('de-DE')}
+          </Text>
+        </View>
+      </View>
+      <Text style={[styles.descLabel, { color: colors.icon }]}>Beschreibung</Text>
+      <View style={[styles.descCard, { backgroundColor: colors.card, borderColor: colors.border }, Shadow.sm]}>
+        <Text style={[styles.description, { color: colors.text }]}>{incident.description}</Text>
+      </View>
     </ScrollView>
   );
 }
@@ -64,18 +77,32 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { justifyContent: 'center', alignItems: 'center', padding: Spacing.xl },
   errorText: { marginBottom: Spacing.md },
-  retryBtn: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: 8 },
+  retryBtn: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm + 2, borderRadius: Radius.sm },
   retryBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  content: { padding: Spacing.xl },
+  content: { padding: Spacing.lg },
   badge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: 8,
-    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: Radius.md,
+    marginBottom: Spacing.lg,
   },
-  badgeText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-  region: { fontSize: 14, marginBottom: 4 },
-  date: { fontSize: 14, marginBottom: Spacing.lg },
-  description: { fontSize: 16, lineHeight: 24 },
+  badgeText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  metaCard: {
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    padding: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  metaLabel: { fontSize: 13, fontWeight: '600', width: 80 },
+  metaValue: { flex: 1, fontSize: 15, fontWeight: '500' },
+  metaDivider: { height: 1, marginVertical: Spacing.md, marginLeft: 28 },
+  descLabel: { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: Spacing.sm },
+  descCard: {
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    padding: Spacing.lg,
+  },
+  description: { fontSize: 16, lineHeight: 24, fontWeight: '400' },
 });

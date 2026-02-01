@@ -1,4 +1,4 @@
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Radius, Shadow, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ADMIN_MODE } from '@/lib/env';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,47 +21,61 @@ export default function ProfilTabScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top, paddingBottom: insets.bottom + Spacing.lg },
+        { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.xxl },
       ]}
     >
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Einstellungen</Text>
-
-      <Pressable
-        style={[styles.row, { borderBottomColor: colors.border }]}
-        onPress={openLocationSettings}
-      >
-        <Ionicons name="location-outline" size={22} color={colors.icon} />
-        <Text style={[styles.rowText, { color: colors.text }]}>Standort-Berechtigung öffnen</Text>
-        <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-      </Pressable>
-
-      <View style={[styles.row, { borderBottomColor: colors.border }]}>
-        <Ionicons name="shield-checkmark-outline" size={22} color={colors.icon} />
-        <Text style={[styles.rowText, { color: colors.text }]}>Sicherheitsmodus</Text>
-        <Text style={[styles.placeholder, { color: colors.icon }]}>Bald verfügbar</Text>
+      <Text style={[styles.sectionTitle, { color: colors.icon }, { marginTop: 0 }]}>Einstellungen</Text>
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, Shadow.sm]}>
+        <Pressable style={styles.row} onPress={openLocationSettings}>
+          <View style={[styles.rowIconWrap, { backgroundColor: colors.background }]}>
+            <Ionicons name="location-outline" size={22} color={colors.tint} />
+          </View>
+          <Text style={[styles.rowText, { color: colors.text }]}>Standort-Berechtigung öffnen</Text>
+          <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+        </Pressable>
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <View style={styles.row}>
+          <View style={[styles.rowIconWrap, { backgroundColor: colors.background }]}>
+            <Ionicons name="shield-checkmark-outline" size={22} color={colors.icon} />
+          </View>
+          <Text style={[styles.rowText, { color: colors.text }]}>Sicherheitsmodus</Text>
+          <Text style={[styles.placeholder, { color: colors.icon }]}>Bald</Text>
+        </View>
       </View>
 
-      <Text style={[styles.sectionTitle, { color: colors.text, marginTop: Spacing.xl }]}>
-        Rechtliches &amp; Hilfe
-      </Text>
-      <View style={[styles.row, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.rowText, { color: colors.text }]}>Datenschutz</Text>
-      </View>
-      <View style={[styles.row, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.rowText, { color: colors.text }]}>Regeln &amp; Nutzung</Text>
-      </View>
-      <View style={[styles.row, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.rowText, { color: colors.text }]}>FAQ</Text>
+      <Text style={[styles.sectionTitle, { color: colors.icon }]}>Rechtliches &amp; Hilfe</Text>
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, Shadow.sm]}>
+        <View style={styles.row}>
+          <Ionicons name="document-text-outline" size={22} color={colors.icon} />
+          <Text style={[styles.rowText, { color: colors.text }]}>Datenschutz</Text>
+          <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+        </View>
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <View style={styles.row}>
+          <Ionicons name="list-outline" size={22} color={colors.icon} />
+          <Text style={[styles.rowText, { color: colors.text }]}>Regeln &amp; Nutzung</Text>
+          <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+        </View>
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <View style={styles.row}>
+          <Ionicons name="help-circle-outline" size={22} color={colors.icon} />
+          <Text style={[styles.rowText, { color: colors.text }]}>FAQ</Text>
+          <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+        </View>
       </View>
 
       {ADMIN_MODE && (
-        <Pressable
-          style={[styles.row, { borderBottomColor: colors.border }]}
-          onPress={() => router.push('/admin')}
-        >
-          <Text style={[styles.rowText, { color: colors.icon }]}>Moderation (Admin)</Text>
-          <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-        </Pressable>
+        <>
+          <Text style={[styles.sectionTitle, { color: colors.icon }]}>Admin</Text>
+          <Pressable
+            style={[styles.card, styles.adminRow, { backgroundColor: colors.card, borderColor: colors.border }, Shadow.sm]}
+            onPress={() => router.push('/admin')}
+          >
+            <Ionicons name="shield-outline" size={22} color={colors.icon} />
+            <Text style={[styles.rowText, { color: colors.icon }]}>Moderation</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+          </Pressable>
+        </>
       )}
     </ScrollView>
   );
@@ -69,15 +83,35 @@ export default function ProfilTabScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: Spacing.lg, paddingBottom: Spacing.xl * 2 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: Spacing.md },
+  content: { padding: Spacing.lg },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.xl,
+  },
+  card: {
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
+    padding: Spacing.lg,
     gap: Spacing.md,
   },
-  rowText: { flex: 1, fontSize: 16 },
-  placeholder: { fontSize: 14 },
+  rowIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowText: { flex: 1, fontSize: 16, fontWeight: '500' },
+  rowDivider: { height: 1, marginLeft: Spacing.lg + 40 + Spacing.md },
+  placeholder: { fontSize: 14, fontWeight: '500' },
+  adminRow: { marginBottom: Spacing.xl },
 });
